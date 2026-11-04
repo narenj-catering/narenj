@@ -1,0 +1,131 @@
+{
+  "updated": "2026-11-04T13:54:25.612Z",
+  "items": {
+    "koobideh": {
+      "price": 620,
+      "off": false
+    },
+    "joojeh": {
+      "price": 420,
+      "off": false
+    },
+    "joojeh-special": {
+      "price": 520,
+      "off": false
+    },
+    "mix": {
+      "price": 660,
+      "off": false
+    },
+    "gheymeh": {
+      "price": 300,
+      "off": false
+    },
+    "ghormeh": {
+      "price": 300,
+      "off": false
+    },
+    "zereshk": {
+      "price": 395,
+      "off": false
+    },
+    "zereshk-fried": {
+      "price": 425,
+      "off": false
+    },
+    "fesenjan": {
+      "price": 370,
+      "off": false
+    },
+    "chelo-kareh": {
+      "price": 135,
+      "off": false
+    },
+    "mast": {
+      "price": 40,
+      "off": false
+    },
+    "zeytoon": {
+      "price": 60,
+      "off": true
+    },
+    "zeytoon-parvardeh": {
+      "price": 100,
+      "off": false
+    },
+    "ab-s": {
+      "price": 20,
+      "off": false
+    },
+    "ab-b": {
+      "price": 35,
+      "off": false
+    },
+    "nooshabeh-s": {
+      "price": 55,
+      "off": false
+    },
+    "nooshabeh-b": {
+      "price": 122,
+      "off": false
+    },
+    "doogh-s": {
+      "price": 65,
+      "off": false
+    },
+    "doogh-b": {
+      "price": 130,
+      "off": false
+    },
+    "limonad-s": {
+      "price": 72,
+      "off": false
+    },
+    "limonad-b": {
+      "price": 130,
+      "off": false
+    },
+    "delester-glass": {
+      "price": 90,
+      "off": false
+    },
+    "delester": {
+      "price": 130,
+      "off": false
+    },
+    "delester-can": {
+      "price": 90,
+      "off": false
+    }
+  },
+  "daily": {
+    "Sat": {
+      "price": 400,
+      "off": false
+    },
+    "Sun": {
+      "price": 540,
+      "off": false
+    },
+    "Mon": {
+      "price": 240,
+      "off": false
+    },
+    "Tue": {
+      "price": 700,
+      "off": false
+    },
+    "Wed": {
+      "price": 240,
+      "off": false
+    },
+    "Thu": {
+      "price": 450,
+      "off": false
+    },
+    "Fri": {
+      "price": 240,
+      "off": false
+    }
+  }
+}

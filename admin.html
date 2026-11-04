@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>پنل مدیریت کترینگ نارنج</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lalezar&family=Vazirmatn:wght@400;500;700&display=swap">
+<style>
+:root { --bg:#fff; --surface:#FFF5EB; --fg:#2A1A0F; --muted:#7B6454; --line:#F2DCC8; --accent:#E8590C; --accent-fg:#fff; --ok:#2E8B57; --bad:#C92A2A; }
+@media (prefers-color-scheme: dark) { :root { --bg:#161009; --surface:#221710; --fg:#F8EDE3; --muted:#C4AC9B; --line:#3A281C; --accent:#FF8A3D; --accent-fg:#2A1204; --ok:#5FCB8A; --bad:#FF8787; color-scheme: dark; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: "Vazirmatn", Tahoma, sans-serif; font-size: 16px; line-height: 1.7; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 16px max(16px, env(safe-area-inset-right)) 120px max(16px, env(safe-area-inset-left)); }
+h1 { font-family: "Lalezar", "Vazirmatn", sans-serif; font-weight: 400; font-size: 2rem; margin: 6px 0 0; color: var(--accent); line-height: 1.4; }
+h2 { font-family: "Lalezar", "Vazirmatn", sans-serif; font-weight: 400; font-size: 1.4rem; margin: 22px 0 6px; line-height: 1.4; }
+p { margin: 6px 0; }
+.muted { color: var(--muted); font-size: .92rem; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; margin-top: 14px; }
+input[type=text], input[type=password] { width: 100%; min-height: 46px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--fg); font: inherit; }
+button { font: inherit; cursor: pointer; min-height: 46px; padding: 6px 20px; border-radius: 14px; border: 1.5px solid var(--accent); background: var(--accent); color: var(--accent-fg); font-weight: 700; }
+button.ghost { background: none; color: var(--accent); }
+button:disabled { opacity: .5; }
+.row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed var(--line); }
+.row:last-child { border-bottom: 0; }
+.row .nm { flex: 1; min-width: 0; font-weight: 500; line-height: 1.4; }
+.row .nm small { display: block; color: var(--muted); font-weight: 400; }
+.row input.price { width: 92px; text-align: center; font-variant-numeric: tabular-nums; direction: ltr; }
+.sw { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; min-width: 84px; justify-content: flex-end; }
+.sw input { width: 22px; height: 22px; accent-color: var(--accent); }
+.row.off .nm { color: var(--muted); text-decoration: line-through; }
+.savebar { position: fixed; inset-inline: 0; bottom: 0; padding: 14px max(16px, env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); background: linear-gradient(transparent, var(--bg) 40%); }
+.savebar .in { max-width: 720px; margin: 0 auto; display: grid; gap: 6px; }
+.savebar button { width: 100%; min-height: 54px; font-size: 1.1rem; }
+#msg { margin: 0; text-align: center; font-weight: 500; min-height: 1.7em; }
+#msg.ok { color: var(--ok); } #msg.bad { color: var(--bad); }
+.today { color: var(--accent); font-size: .8rem; font-weight: 700; }
+ol { padding-inline-start: 22px; margin: 6px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>پنل مدیریت</h1>
+  <p class="muted">قیمت و موجودی غذاها را اینجا عوض کنید؛ نیازی به دست زدن به کد نیست. قیمت‌ها به <b>هزار تومان</b> است (مثلاً ۶۲۰ یعنی ۶۲۰٬۰۰۰ تومان).</p>
+
+  <div class="card" id="login">
+    <b>کلید دسترسی (توکن)</b>
+    <p class="muted">فقط یک بار می‌چسبانید و روی همین گوشی ذخیره می‌ماند. به کسی ندهید.</p>
+    <input id="token" type="password" dir="ltr" autocomplete="off" placeholder="github_pat_…">
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <button id="enter" type="button">ورود و بارگذاری منو</button>
+    </div>
+    <p id="loginmsg" class="muted"></p>
+  </div>
+
+  <div id="panel" hidden>
+    <h2>غذای امروز (برنامه‌ی هفتگی)</h2>
+    <div class="card" id="daily"></div>
+    <div id="groups"></div>
+    <p style="margin-top:24px"><button id="forget" class="ghost" type="button">خروج و حذف توکن از این گوشی</button></p>
+  </div>
+</div>
+
+<div class="savebar" id="savebar" hidden>
+  <div class="in">
+    <p id="msg" role="status"></p>
+    <button id="save" type="button">ذخیره‌ی تغییرات</button>
+  </div>
+</div>
+
+<script>
+/* ===== اطلاعات منو (مقدار پیش‌فرض). قیمت‌ها به هزار تومان. قیمت و موجودی را پنل مدیریت (admin.html) از روی menu.json عوض می‌کند. ===== */
+var CONFIG = { sms: "+989191719582", smsLocal: "09191719582", tel: "08643242525", shop: "کترینگ نارنج" };
+var DISCOUNT = 0.05;
+var UNIT = 1000;
+var HOURS = [[11 * 60, 15 * 60], [18 * 60, 23 * 60]];
+
+var GROUPS = [
+  { key: "kebab", title: "کبابی" },
+  { key: "polo", title: "خورشت و پلو" },
+  { key: "side", title: "مخلفات و نوشیدنی" }
+];
+var GROUP_NAME = { kebab: "کبابی", polo: "خورشت و پلو", side: "مخلفات و نوشیدنی", daily: "غذای امروز" };
+
+var ITEMS = [
+  { id: "koobideh", group: "kebab", name: "چلو کباب کوبیده", price: 620, img: "koobideh", desc: "گوشت مخلوط گوساله و گوسفند، دو سیخ ۱۰۰ گرمی، با ۳۵۰ گرم برنج ایرانی." },
+  { id: "joojeh", group: "kebab", name: "چلو جوجه کباب", price: 420, img: "joojeh", desc: "یک سیخ ۱۸۰ گرمی، با ۳۵۰ گرم برنج ایرانی." },
+  { id: "joojeh-special", group: "kebab", name: "چلو جوجه کباب مخصوص", price: 520, desc: "۲۵۰ گرم سینه‌ی مرغ، با ۳۵۰ گرم برنج ایرانی." },
+  { id: "mix", group: "kebab", name: "چلو میکس", price: 660, img: "mix", desc: "یک سیخ کوبیده ۱۰۰ گرمی و یک سیخ جوجه کباب ۱۸۰ گرمی، با ۳۵۰ گرم برنج ایرانی." },
+
+  { id: "gheymeh", group: "polo", name: "قیمه", price: 300, img: "gheymeh", desc: "سه تکه گوشت، با ۳۵۰ گرم برنج ایرانی." },
+  { id: "ghormeh", group: "polo", name: "قرمه‌سبزی", price: 300, img: "ghormeh", desc: "سه تکه گوشت و سبزی معطر سرخ‌شده، با ۳۵۰ گرم برنج ایرانی." },
+  { id: "zereshk", group: "polo", name: "زرشک‌پلو مرغ", price: 395, img: "zereshk", desc: "زرشک‌پلو با مرغ." },
+  { id: "zereshk-fried", group: "polo", name: "زرشک‌پلو مرغ سرخ‌شده", price: 425, desc: "زرشک‌پلو با مرغ سرخ‌شده." },
+  { id: "fesenjan", group: "polo", name: "فسنجان", price: 370, img: "fesenjan", desc: "۱۵۰ گرم سینه‌ی مرغ، گردو و ربع انار، با ۳۵۰ گرم برنج ایرانی." },
+  { id: "chelo-kareh", group: "polo", name: "چلو کره", price: 135, img: "kareh", desc: "۳۵۰ گرم برنج ایرانی با کره." },
+
+  { id: "mast", group: "side", name: "ماست موسیر", price: 40 },
+  { id: "zeytoon", group: "side", name: "زیتون شور", price: 60 },
+  { id: "zeytoon-parvardeh", group: "side", name: "زیتون پرورده دست‌ساز", price: 100 },
+  { id: "ab-s", group: "side", name: "آب معدنی کوچک", price: 20 },
+  { id: "ab-b", group: "side", name: "آب معدنی بزرگ", price: 35 },
+  { id: "nooshabeh-s", group: "side", name: "نوشابه کوچک", price: 55 },
+  { id: "nooshabeh-b", group: "side", name: "نوشابه بزرگ", price: 122 },
+  { id: "doogh-s", group: "side", name: "دوغ کوچک", price: 65 },
+  { id: "doogh-b", group: "side", name: "دوغ بزرگ", price: 130 },
+  { id: "limonad-s", group: "side", name: "لیموناد کوچک", price: 72 },
+  { id: "limonad-b", group: "side", name: "لیموناد بزرگ", price: 130 },
+  { id: "delester-glass", group: "side", name: "دلستر شیشه‌ای انگور", price: 90 },
+  { id: "delester", group: "side", name: "دلستر بزرگ", price: 130 },
+  { id: "delester-can", group: "side", name: "دلستر قوطی", price: 90 }
+];
+
+/* غذای روزانه: هر غذا فقط در همان روز دیده و سفارش داده می‌شود. */
+var DAILY = {
+  Sat: { id: "d-sat", dayName: "شنبه", name: "کوبیده مرغ", price: 400, img: "koobideh-morgh", desc: "دو سیخ سینه‌ی مرغ چرخ‌کرده." },
+  Sun: { id: "d-sun", dayName: "یکشنبه", name: "سبزی‌پلو با ماهی", price: 540, img: "sabzi-polo", desc: "ماهی قزل‌آلا ۶۰۰ گرمی با ۳۵۰ گرم برنج ایرانی." },
+  Mon: { id: "d-mon", dayName: "دوشنبه", name: "لوبیاپلو", price: 240, img: "lobia-polo" },
+  Tue: { id: "d-tue", dayName: "سه‌شنبه", name: "اکبر جوجه", price: 700, img: "akbar-joojeh", desc: "۳۵۰ گرم برنج ایرانی و یک مرغ سرخ‌شده‌ی کامل." },
+  Wed: { id: "d-wed", dayName: "چهارشنبه", name: "عدس‌پلو", price: 240, img: "adas-polo", desc: "۱۰۰ گرم گوشت گوساله، پیازداغ و کشمش، با ۳۵۰ گرم برنج ایرانی." },
+  Thu: { id: "d-thu", dayName: "پنجشنبه", name: "کوفته تبریزی", price: 450, img: "kofte" },
+  Fri: { id: "d-fri", dayName: "جمعه", name: "ماکارانی", price: 240, img: "macaroni" }
+};
+
+
+var OWNER = "narenj-catering", REPO = "narenj", PATH = "menu.json";
+var API = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + PATH;
+var DAY_ORDER = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
+var sha = null;
+var fa = new Intl.NumberFormat("fa-IR");
+function byId(id) { return document.getElementById(id); }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+function norm(s) {
+  return String(s).replace(/[۰-۹]/g, function (d) { return "۰۱۲۳۴۵۶۷۸۹".indexOf(d); })
+    .replace(/[٠-٩]/g, function (d) { return "٠١٢٣٤٥٦٧٨٩".indexOf(d); }).replace(/[,٬\s]/g, "");
+}
+function getToken() { try { return localStorage.getItem("narenj_token") || ""; } catch (e) { return ""; } }
+function setToken(t) { try { if (t) localStorage.setItem("narenj_token", t); else localStorage.removeItem("narenj_token"); } catch (e) {} }
+function hdr(t) { return { "Authorization": "Bearer " + t, "Accept": "application/vnd.github+json" }; }
+function say(text, kind) { var m = byId("msg"); m.textContent = text; m.className = kind || ""; }
+
+function rowHTML(key, name, price, off, extra) {
+  return '<div class="row' + (off ? ' off' : '') + '" data-key="' + key + '"><div class="nm">' + esc(name) + (extra || '') + '</div>' +
+    '<input class="price" type="text" inputmode="numeric" value="' + price + '" aria-label="قیمت ' + esc(name) + '">' +
+    '<label class="sw"><input type="checkbox" class="avail"' + (off ? '' : ' checked') + '> موجود</label></div>';
+}
+function build(saved) {
+  var si = (saved && saved.items) || {}, sd = (saved && saved.daily) || {};
+  var today = "";
+  try { today = new Date().toLocaleDateString("en-US", { weekday: "short", timeZone: "Asia/Tehran" }); } catch (e) {}
+  byId("daily").innerHTML = DAY_ORDER.map(function (k) {
+    var d = DAILY[k], o = sd[k] || {};
+    return rowHTML("daily:" + k, d.dayName + ": " + d.name, o.price > 0 ? o.price : d.price, !!o.off, k === today ? ' <span class="today">امروز</span>' : '');
+  }).join("");
+  byId("groups").innerHTML = GROUPS.map(function (g) {
+    return '<h2>' + g.title + '</h2><div class="card">' + ITEMS.filter(function (i) { return i.group === g.key; }).map(function (it) {
+      var o = si[it.id] || {};
+      return rowHTML("item:" + it.id, it.name, o.price > 0 ? o.price : it.price, !!o.off);
+    }).join("") + '</div>';
+  }).join("");
+}
+function collect() {
+  var out = { updated: new Date().toISOString(), items: {}, daily: {} }, bad = null;
+  document.querySelectorAll(".row[data-key]").forEach(function (r) {
+    var key = r.getAttribute("data-key"), p = parseInt(norm(r.querySelector(".price").value), 10);
+    if (!(p > 0)) { bad = r; return; }
+    var rec = { price: p, off: !r.querySelector(".avail").checked };
+    if (key.indexOf("daily:") === 0) out.daily[key.slice(6)] = rec; else out.items[key.slice(5)] = rec;
+  });
+  return bad ? { error: bad } : out;
+}
+function b64e(str) { return btoa(unescape(encodeURIComponent(str))); }
+function b64d(b64) { return decodeURIComponent(escape(atob(b64.replace(/\s/g, "")))); }
+
+function load() {
+  var t = byId("token").value.trim() || getToken();
+  if (!t) { byId("loginmsg").textContent = "اول توکن را بچسبانید."; return; }
+  byId("loginmsg").textContent = "در حال اتصال…";
+  fetch(API, { headers: hdr(t), cache: "no-store" }).then(function (r) {
+    if (r.status === 401 || r.status === 403) throw new Error("auth");
+    if (r.status === 404) {
+      return fetch("https://api.github.com/repos/" + OWNER + "/" + REPO, { headers: hdr(t) }).then(function (rr) {
+        if (!rr.ok) throw new Error("auth");
+        sha = null; return null;
+      });
+    }
+    if (!r.ok) throw new Error("http" + r.status);
+    return r.json().then(function (j) { sha = j.sha; try { return JSON.parse(b64d(j.content)); } catch (e) { return null; } });
+  }).then(function (saved) {
+    setToken(t);
+    byId("token").value = "";
+    byId("login").hidden = true;
+    byId("panel").hidden = false;
+    byId("savebar").hidden = false;
+    build(saved);
+    say(saved ? "" : "هنوز چیزی ذخیره نشده؛ قیمت‌های پیش‌فرض نشان داده می‌شود.", "");
+  }).catch(function (e) {
+    byId("loginmsg").textContent = e.message === "auth"
+      ? "توکن درست نیست یا اجازه‌ی تغییر این مخزن را ندارد. دوباره بسازید."
+      : "اتصال برقرار نشد. اینترنت را بررسی کنید و دوباره بزنید.";
+  });
+}
+function save() {
+  var data = collect();
+  if (data.error) { data.error.scrollIntoView({ block: "center" }); say("قیمت یکی از غذاها درست نیست.", "bad"); return; }
+  var t = getToken();
+  var btn = byId("save");
+  btn.disabled = true; say("در حال ذخیره…", "");
+  var body = { message: "به‌روزرسانی قیمت و موجودی منو", content: b64e(JSON.stringify(data, null, 2) + "\n") };
+  if (sha) body.sha = sha;
+  fetch(API, { method: "PUT", headers: Object.assign({ "Content-Type": "application/json" }, hdr(t)), body: JSON.stringify(body) })
+    .then(function (r) {
+      return r.json().then(function (j) {
+        if (!r.ok) { var err = new Error("save"); err.status = r.status; throw err; }
+        sha = j.content && j.content.sha;
+        say("ذخیره شد ✓ تا حدود یک دقیقه‌ی دیگر روی سایت اعمال می‌شود.", "ok");
+      });
+    })
+    .catch(function (e) {
+      if (e.status === 409 || e.status === 422) say("همزمان تغییر دیگری ثبت شده. صفحه را تازه کنید و دوباره بزنید.", "bad");
+      else if (e.status === 401 || e.status === 403) say("توکن اجازه‌ی نوشتن ندارد (Contents: Read and write).", "bad");
+      else say("ذخیره نشد. اینترنت را بررسی کنید و دوباره بزنید.", "bad");
+    })
+    .then(function () { btn.disabled = false; });
+}
+
+byId("enter").addEventListener("click", load);
+byId("save").addEventListener("click", save);
+byId("forget").addEventListener("click", function () { setToken(""); location.reload(); });
+document.addEventListener("change", function (e) {
+  if (e.target.classList.contains("avail")) e.target.closest(".row").classList.toggle("off", !e.target.checked);
+});
+if (getToken()) load();
+</script>
+</body>
+</html>

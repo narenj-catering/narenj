@@ -721,6 +721,12 @@ function applyMenu(m) {
     if (typeof o.price === "number" && o.price > 0) DAILY[k].price = o.price;
     DAILY[k].off = !!o.off;
   });
+  (m.extra || []).forEach(function (x) {
+    if (!x || !x.id || !x.name || !(x.price > 0)) return;
+    if (["kebab", "polo", "side"].indexOf(x.group) < 0) return;
+    for (var i = 0; i < ITEMS.length; i++) if (ITEMS[i].id === x.id) return;
+    ITEMS.push({ id: String(x.id), group: x.group, name: String(x.name), price: x.price, desc: x.desc ? String(x.desc) : "", photo: x.photo ? String(x.photo) : "", off: !!x.off });
+  });
   Object.keys(cart).forEach(function (id) {
     var it = findItem(id);
     if (!it || it.off) delete cart[id];
@@ -736,7 +742,7 @@ function loadMenu() {
 
 /* ----- منو ----- */
 function phHTML(it) {
-  var src = window.IMGS && it.img && window.IMGS[it.img];
+  var src = (it.photo && /^img\//.test(it.photo)) ? esc(it.photo) : (window.IMGS && it.img && window.IMGS[it.img]);
   return '<div class="ph">' + (src
     ? '<img class="ready" src="' + src + '" alt="' + esc(it.name) + '" width="480" height="480" decoding="async">'
     : '<svg class="phic" viewBox="0 0 64 64" aria-hidden="true"><use href="#slice" width="64" height="64"/></svg>') + '</div>';

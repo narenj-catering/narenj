@@ -35,6 +35,10 @@ button:disabled { opacity: .5; }
 #msg { margin: 0; text-align: center; font-weight: 500; min-height: 1.7em; }
 #msg.ok { color: var(--ok); } #msg.bad { color: var(--bad); }
 .today { color: var(--accent); font-size: .8rem; font-weight: 700; }
+.del { min-height: 36px; padding: 2px 12px; font-size: .85rem; background: none; color: var(--bad); border-color: var(--bad); }
+select { width: 100%; min-height: 46px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--fg); font: inherit; }
+[hidden] { display: none !important; }
+label.f { display: grid; gap: 4px; color: var(--muted); font-size: .92rem; margin-top: 10px; }
 ol { padding-inline-start: 22px; margin: 6px 0; }
 </style>
 </head>
@@ -56,6 +60,17 @@ ol { padding-inline-start: 22px; margin: 6px 0; }
   <div id="panel" hidden>
     <h2>غذای امروز (برنامه‌ی هفتگی)</h2>
     <div class="card" id="daily"></div>
+    <h2>افزودن غذای جدید</h2>
+    <div class="card" id="addcard">
+      <label class="f">نام غذا <input id="n-name" type="text" placeholder="مثلاً چلو ماهیچه"></label>
+      <label class="f">دسته <select id="n-group"><option value="kebab">کبابی</option><option value="polo">خورشت و پلو</option><option value="side">مخلفات و نوشیدنی (بدون عکس)</option></select></label>
+      <label class="f">قیمت (هزار تومان) <input id="n-price" type="text" inputmode="numeric" placeholder="مثلاً ۴۵۰"></label>
+      <label class="f">توضیح (اختیاری) <input id="n-desc" type="text" placeholder="مثلاً با ۳۵۰ گرم برنج ایرانی"></label>
+      <label class="f" id="n-photo-wrap">عکس (اختیاری) <input id="n-photo" type="file" accept="image/*"></label>
+      <p style="margin-top:12px"><button id="n-add" type="button" style="width:100%">افزودن غذا</button></p>
+      <p id="n-msg" class="muted"></p>
+    </div>
+    <div id="extra-box" hidden><h2>غذاهای اضافه‌شده</h2><div class="card" id="extra"></div></div>
     <div id="groups"></div>
     <p style="margin-top:24px"><button id="forget" class="ghost" type="button">خروج و حذف توکن از این گوشی</button></p>
   </div>
@@ -85,13 +100,13 @@ var GROUP_NAME = { kebab: "کبابی", polo: "خورشت و پلو", side: "م�
 var ITEMS = [
   { id: "koobideh", group: "kebab", name: "چلو کباب کوبیده", price: 620, img: "koobideh", desc: "گوشت مخلوط گوساله و گوسفند، دو سیخ ۱۰۰ گرمی، با ۳۵۰ گرم برنج ایرانی." },
   { id: "joojeh", group: "kebab", name: "چلو جوجه کباب", price: 420, img: "joojeh", desc: "یک سیخ ۱۸۰ گرمی، با ۳۵۰ گرم برنج ایرانی." },
-  { id: "joojeh-special", group: "kebab", name: "چلو جوجه کباب مخصوص", price: 520, desc: "۲۵۰ گرم سینه‌ی مرغ، با ۳۵۰ گرم برنج ایرانی." },
+  { id: "joojeh-special", group: "kebab", name: "چلو جوجه کباب مخصوص", price: 520, img: "joojeh-special", desc: "۲۵۰ گرم سینه‌ی مرغ، با ۳۵۰ گرم برنج ایرانی." },
   { id: "mix", group: "kebab", name: "چلو میکس", price: 660, img: "mix", desc: "یک سیخ کوبیده ۱۰۰ گرمی و یک سیخ جوجه کباب ۱۸۰ گرمی، با ۳۵۰ گرم برنج ایرانی." },
 
   { id: "gheymeh", group: "polo", name: "قیمه", price: 300, img: "gheymeh", desc: "سه تکه گوشت، با ۳۵۰ گرم برنج ایرانی." },
   { id: "ghormeh", group: "polo", name: "قرمه‌سبزی", price: 300, img: "ghormeh", desc: "سه تکه گوشت و سبزی معطر سرخ‌شده، با ۳۵۰ گرم برنج ایرانی." },
   { id: "zereshk", group: "polo", name: "زرشک‌پلو مرغ", price: 395, img: "zereshk", desc: "زرشک‌پلو با مرغ." },
-  { id: "zereshk-fried", group: "polo", name: "زرشک‌پلو مرغ سرخ‌شده", price: 425, desc: "زرشک‌پلو با مرغ سرخ‌شده." },
+  { id: "zereshk-fried", group: "polo", name: "زرشک‌پلو مرغ سرخ‌شده", price: 425, img: "zereshk-fried", desc: "زرشک‌پلو با مرغ سرخ‌شده." },
   { id: "fesenjan", group: "polo", name: "فسنجان", price: 370, img: "fesenjan", desc: "۱۵۰ گرم سینه‌ی مرغ، گردو و ربع انار، با ۳۵۰ گرم برنج ایرانی." },
   { id: "chelo-kareh", group: "polo", name: "چلو کره", price: 135, img: "kareh", desc: "۳۵۰ گرم برنج ایرانی با کره." },
 
@@ -127,6 +142,8 @@ var OWNER = "narenj-catering", REPO = "narenj", PATH = "menu.json";
 var API = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + PATH;
 var DAY_ORDER = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri"];
 var sha = null;
+var extra = [];
+var GNAME = { kebab: "کبابی", polo: "خورشت و پلو", side: "مخلفات" };
 var fa = new Intl.NumberFormat("fa-IR");
 function byId(id) { return document.getElementById(id); }
 function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
@@ -139,13 +156,21 @@ function setToken(t) { try { if (t) localStorage.setItem("narenj_token", t); els
 function hdr(t) { return { "Authorization": "Bearer " + t, "Accept": "application/vnd.github+json" }; }
 function say(text, kind) { var m = byId("msg"); m.textContent = text; m.className = kind || ""; }
 
-function rowHTML(key, name, price, off, extra) {
-  return '<div class="row' + (off ? ' off' : '') + '" data-key="' + key + '"><div class="nm">' + esc(name) + (extra || '') + '</div>' +
+function rowHTML(key, name, price, off, extraHtml, del) {
+  return '<div class="row' + (off ? ' off' : '') + '" data-key="' + key + '"><div class="nm">' + esc(name) + (extraHtml || '') + '</div>' +
     '<input class="price" type="text" inputmode="numeric" value="' + price + '" aria-label="قیمت ' + esc(name) + '">' +
-    '<label class="sw"><input type="checkbox" class="avail"' + (off ? '' : ' checked') + '> موجود</label></div>';
+    '<label class="sw"><input type="checkbox" class="avail"' + (off ? '' : ' checked') + '> موجود</label>' +
+    (del ? '<button type="button" class="del" data-del="' + del + '">حذف</button>' : '') + '</div>';
+}
+function renderExtra() {
+  byId("extra-box").hidden = extra.length === 0;
+  byId("extra").innerHTML = extra.map(function (x) {
+    return rowHTML("extra:" + x.id, x.name, x.price, !!x.off, '<small>' + GNAME[x.group] + '</small>', x.id);
+  }).join("");
 }
 function build(saved) {
   var si = (saved && saved.items) || {}, sd = (saved && saved.daily) || {};
+  extra = ((saved && saved.extra) || []).filter(function (x) { return x && x.id && x.name; });
   var today = "";
   try { today = new Date().toLocaleDateString("en-US", { weekday: "short", timeZone: "Asia/Tehran" }); } catch (e) {}
   byId("daily").innerHTML = DAY_ORDER.map(function (k) {
@@ -158,14 +183,19 @@ function build(saved) {
       return rowHTML("item:" + it.id, it.name, o.price > 0 ? o.price : it.price, !!o.off);
     }).join("") + '</div>';
   }).join("");
+  renderExtra();
 }
 function collect() {
-  var out = { updated: new Date().toISOString(), items: {}, daily: {} }, bad = null;
+  var out = { updated: new Date().toISOString(), items: {}, daily: {}, extra: [] }, bad = null;
   document.querySelectorAll(".row[data-key]").forEach(function (r) {
     var key = r.getAttribute("data-key"), p = parseInt(norm(r.querySelector(".price").value), 10);
     if (!(p > 0)) { bad = r; return; }
-    var rec = { price: p, off: !r.querySelector(".avail").checked };
-    if (key.indexOf("daily:") === 0) out.daily[key.slice(6)] = rec; else out.items[key.slice(5)] = rec;
+    var off = !r.querySelector(".avail").checked;
+    if (key.indexOf("daily:") === 0) out.daily[key.slice(6)] = { price: p, off: off };
+    else if (key.indexOf("extra:") === 0) {
+      var id = key.slice(6);
+      extra.forEach(function (x) { if (x.id === id) { x.price = p; x.off = off; out.extra.push(x); } });
+    } else out.items[key.slice(5)] = { price: p, off: off };
   });
   return bad ? { error: bad } : out;
 }
@@ -224,6 +254,62 @@ function save() {
     .then(function () { btn.disabled = false; });
 }
 
+function resizeImg(file, cb) {
+  var r = new FileReader();
+  r.onload = function () {
+    var im = new Image();
+    im.onload = function () {
+      var s = Math.min(1, 800 / Math.max(im.width, im.height));
+      var c = document.createElement("canvas");
+      c.width = Math.round(im.width * s); c.height = Math.round(im.height * s);
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      cb(c.toDataURL("image/jpeg", 0.8).split(",")[1]);
+    };
+    im.onerror = function () { cb(null); };
+    im.src = r.result;
+  };
+  r.onerror = function () { cb(null); };
+  r.readAsDataURL(file);
+}
+function nmsg(t, kind) { var m = byId("n-msg"); m.textContent = t; m.className = "muted"; m.style.color = kind === "bad" ? "var(--bad)" : kind === "ok" ? "var(--ok)" : ""; }
+function addDish() {
+  var name = byId("n-name").value.trim(), group = byId("n-group").value;
+  var price = parseInt(norm(byId("n-price").value), 10), desc = byId("n-desc").value.trim();
+  var file = group === "side" ? null : byId("n-photo").files[0];
+  if (!name) { nmsg("نام غذا را بنویسید.", "bad"); return; }
+  if (!(price > 0)) { nmsg("قیمت را به عدد بنویسید.", "bad"); return; }
+  var id = "x" + Date.now().toString(36);
+  var btn = byId("n-add"); btn.disabled = true; nmsg("در حال افزودن…", "");
+  var finish = function (photo) {
+    extra.push({ id: id, group: group, name: name, price: price, desc: desc, photo: photo || "", off: false });
+    renderExtra();
+    ["n-name", "n-price", "n-desc", "n-photo"].forEach(function (i) { byId(i).value = ""; });
+    nmsg("غذا اضافه شد. حالا «ذخیره‌ی تغییرات» پایین صفحه را بزنید.", "ok");
+    btn.disabled = false;
+  };
+  if (!file) { finish(""); return; }
+  resizeImg(file, function (b64) {
+    if (!b64) { nmsg("عکس خوانده نشد. عکس دیگری انتخاب کنید.", "bad"); btn.disabled = false; return; }
+    nmsg("در حال آپلود عکس…", "");
+    fetch("https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/img/" + id + ".jpg", {
+      method: "PUT", headers: Object.assign({ "Content-Type": "application/json" }, hdr(getToken())),
+      body: JSON.stringify({ message: "عکس غذای جدید", content: b64 })
+    }).then(function (r) {
+      if (!r.ok) throw new Error("up");
+      finish("img/" + id + ".jpg");
+    }).catch(function () { nmsg("آپلود عکس نشد. اینترنت را بررسی کنید یا بدون عکس اضافه کنید.", "bad"); btn.disabled = false; });
+  });
+}
+byId("n-add").addEventListener("click", addDish);
+byId("n-group").addEventListener("change", function () { byId("n-photo-wrap").hidden = this.value === "side"; });
+document.addEventListener("click", function (e) {
+  var d = e.target.closest("[data-del]");
+  if (!d) return;
+  var id = d.getAttribute("data-del");
+  if (!confirm("این غذا حذف شود؟ (بعد از «ذخیره‌ی تغییرات» از سایت پاک می‌شود)")) return;
+  extra = extra.filter(function (x) { return x.id !== id; });
+  renderExtra();
+});
 byId("enter").addEventListener("click", load);
 byId("save").addEventListener("click", save);
 byId("forget").addEventListener("click", function () { setToken(""); location.reload(); });
